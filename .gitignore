@@ -1,0 +1,18 @@
+# Python Virtual Environments
+trans9/
+venv/
+env/
+__pycache__/
+
+# IDE & Caches
+.vs/
+.idea/
+
+# Machine Learning Models & Weights
+Models/
+trocr_base_printed_local/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx

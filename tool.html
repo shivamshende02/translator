@@ -1,0 +1,243 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload and Processing</title>
+    <style>
+        
+        .file-upload-form {
+            width: fit-content;
+            height: fit-content;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .file-upload-label input {
+            display: none;
+        }
+
+        .file-upload-label svg {
+            height: 50px;
+            fill: rgb(82, 82, 82);
+            margin-bottom: 20px;
+        }
+
+        .file-upload-label {
+            cursor: pointer;
+            background-color: #ddd;
+            padding: 30px 70px;
+            border-radius: 40px;
+            border: 2px dashed rgb(82, 82, 82);
+            box-shadow: 0px 0px 200px -50px rgba(0, 0, 0, 0.719);
+            text-align: center;
+        }
+
+        .file-upload-design {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .browse-button {
+            background-color: rgb(82, 82, 82);
+            padding: 5px 15px;
+            border-radius: 10px;
+            color: white;
+            transition: all 0.3s;
+        }
+
+            .browse-button:hover {
+                background-color: rgb(14, 14, 14);
+            }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+        }
+
+        textarea {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            margin: 10px auto;
+        }
+        #outputText {
+            width: 100vw; 
+            height: 90vh; 
+            padding: 15px;
+            font-size: 18px; 
+            font-family: Arial, sans-serif; 
+            border: 2px solid #4CAF50; 
+            border-radius: 8px; 
+            outline: none; 
+            resize: none; 
+            background-color: #f9f9f9;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); 
+        }
+
+            
+            #outputText:focus {
+                border-color: #2E8B57; 
+                background-color: #fff; 
+            }
+
+        .btn {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+            .btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+            }
+
+            .btn:active {
+                transform: scale(0.95);
+            }
+
+
+    </style>
+</head>
+<body>
+    <form class="file-upload-form">
+        <label for="imageInput" class="file-upload-label">
+            <div class="file-upload-design">
+                <svg viewBox="0 0 640 512" height="1em">
+                    <path d="M144 480C64.5 480 0 415.5 0 336c0-62.8 40.2-116.2 96.2-135.9c-.1-2.7-.2-5.4-.2-8.1c0-88.4 71.6-160 160-160c59.3 0 111 32.2 138.7 80.2C409.9 102 428.3 96 448 96c53 0 96 43 96 96c0 12.2-2.3 23.8-6.4 34.6C596 238.4 640 290.1 640 352c0 70.7-57.3 128-128 128H144zm79-217c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l39-39V392c0 13.3 10.7 24 24 24s24-10.7 24-24V257.9l39 39c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-80-80c-9.4-9.4-24.6-9.4-33.9 0l-80 80z"></path>
+                </svg>
+                <p>Drag and Drop</p>
+                <p>or</p>
+                <span class="browse-button">Browse file</span>
+            </div>
+            <input id="imageInput" type="file" accept="image/*">
+        </label>
+    </form>
+    <canvas id="canvas"></canvas>
+    <textarea id="outputText"></textarea>
+    <br>
+    <button class="btn" onclick="sendToPython()">Send</button>
+    <p class="response" id="responseText"></p>
+
+
+    <script>
+        const imageInput = document.getElementById("imageInput");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const outputText = document.getElementById("outputText");
+        let img = new Image();
+        let isDrawing = false;
+        let startX, startY, endX, endY;
+
+        imageInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        img.onload = function () {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+        };
+
+        canvas.addEventListener("mousedown", (e) => {
+            isDrawing = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            if (!isDrawing) return;
+            endX = e.offsetX;
+            endY = e.offsetY;
+            redraw();
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+        });
+
+        canvas.addEventListener("mouseup", () => {
+            isDrawing = false;
+            cropAndSendImage();
+        });
+
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        }
+
+        function cropAndSendImage() {
+            const width = endX - startX;
+            const height = endY - startY;
+            if (width > 0 && height > 0) {
+                const croppedCanvas = document.createElement("canvas");
+                croppedCanvas.width = width;
+                croppedCanvas.height = height;
+                const croppedCtx = croppedCanvas.getContext("2d");
+                croppedCtx.drawImage(canvas, startX, startY, width, height, 0, 0, width, height);
+                croppedCanvas.toBlob((blob) => {
+                    const formData = new FormData();
+                    formData.append("image", blob, "cropped.png");
+                    fetch("http://127.0.0.1:5000/process_image", {
+                        method: "POST",
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            outputText.value = data.result;
+                        })
+                        .catch(error => console.error("Error:", error));
+                }, "image/png");
+            }
+        }
+
+        async function sendToPython() {
+            let text = document.getElementById("outputText").value.trim();
+
+            if (!text) {
+                alert("Please enter some text before submitting.");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/process_text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                document.getElementById("responseText").innerText = "Python Response: " + data.response;
+
+            } catch (error) {
+                console.error("Error connecting to Flask:", error);
+                alert("Failed to connect to the server. Ensure Flask is running and try again.");
+            }
+        }
+
+
+    </script>
+</body>
+</html>
